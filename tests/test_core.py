@@ -3,8 +3,29 @@ from transitops_m import Dispatcher, State
 
 class TestFleet(unittest.TestCase):
     def test_station_tracking(self):
-        d = Dispatcher(); d.tick(30)
+        d = Dispatcher(); d.tick(40)
         self.assertEqual([e["station"] for e in d.events if e["type"] == "STATION_ARRIVAL"], ["Station A", "Station B"])
+
+    def test_station_dwell(self):
+        d = Dispatcher()
+        d.tick(9)
+        self.assertEqual(d.buses["BUS-01"].station, "Station A")
+        self.assertEqual(d.buses["BUS-01"].dwell_remaining, 3)
+        distance = d.buses["BUS-01"].distance
+        d.tick(2)
+        self.assertEqual(d.buses["BUS-01"].distance, distance)
+        d.tick(1)
+        self.assertEqual(d.buses["BUS-01"].dwell_remaining, 0)
+        self.assertEqual(d.events[-1]["type"], "STATION_DEPARTURE")
+
+    def test_reset_simulation(self):
+        d = Dispatcher()
+        d.tick(10)
+        d.request_depot("BUS-01")
+        d.reset()
+        self.assertEqual(d.tick_no, 0)
+        self.assertEqual(d.buses["BUS-01"].state, State.IN_SERVICE)
+        self.assertIsNone(d.bays["DEPOT-1"].reserved_for)
 
     def test_depot_flow(self):
         d = Dispatcher(); d.request_depot("BUS-01")
