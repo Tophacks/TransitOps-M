@@ -14,3 +14,15 @@ API: GET /health, GET /api/state, POST /api/command.
 Commands: tick (steps 1..100), return, dock, dispatch, stop, clear, reset, add.
 
 **Safety:** SIMULATION ONLY. Docking is manually confirmed in software. No motor hardware, real emergency-stop circuitry, battery charger, or GPIO interface is implemented. This API must not be exposed to a public network or connected directly to actuators.
+
+## Dashboard buttons and connection modes
+
+The dashboard automatically detects the local Python API. When the server is running, the buttons operate the Python in-memory simulation. If the HTML file is opened directly or the API is unavailable, the dashboard falls back to **browser demo mode**, which runs a separate in-browser simulation. Its state resets on page refresh.
+
+To run the connected Python mode:
+
+```bash
+python -m transitops_m.api
+```
+
+Visit http://127.0.0.1:8765/ and confirm the banner reads **Connected to Python simulation API**. The GitHub code viewer itself does not execute the dashboard; download or clone the repository to run the app.
