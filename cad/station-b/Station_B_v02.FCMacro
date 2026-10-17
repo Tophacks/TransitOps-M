@@ -2,8 +2,8 @@
 import FreeCAD as App
 import os
 N="TransitOps_M_Station_B"
-old=App.getDocument(N)
-if old: App.closeDocument(N)
+if N in App.listDocuments():
+ App.closeDocument(N)
 d=App.newDocument(N)
 colors={"base":(.72,.75,.77),"steel":(.25,.31,.35),"roof":(.16,.31,.40),"glass":(.41,.75,.85),"wood":(.57,.40,.25),"yellow":(.95,.76,.17),"blue":(.15,.34,.69),"dark":(.14,.17,.21)}
 def group(n): return d.addObject("App::DocumentObjectGroup",n)
