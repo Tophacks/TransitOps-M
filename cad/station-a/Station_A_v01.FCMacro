@@ -1,0 +1,103 @@
+# TransitOps-M | Station A v0.1 | FreeCAD macro
+# Run within FreeCAD 1.x. Dimensions in millimetres, HO 1:87.
+# Generates editable primitives and saves a native FCStd model + STEP assembly.
+# Prototype geometry only: not yet checked against a specific vehicle / printer.
+import FreeCAD as App
+import Part
+import os
+
+DOC_NAME = "TransitOps_M_Station_A"
+existing = App.getDocument(DOC_NAME)
+if existing:
+    App.closeDocument(DOC_NAME)
+doc = App.newDocument(DOC_NAME)
+
+# Edit these values to regenerate a dimensioned station
+L = 180.0      # platform along road
+D = 45.0       # platform depth
+BASE_T = 3.0
+SHELTER_L = 95.0
+SHELTER_D = 25.0
+CANOPY_Z = 34.0
+POST_R = 1.4
+colors = {
+    "concrete": (0.68, 0.72, 0.76),
+    "steel": (0.25, 0.32, 0.39),
+    "glass": (0.44, 0.75, 0.89),
+    "roof": (0.22, 0.37, 0.48),
+    "yellow": (0.96, 0.74, 0.12),
+    "wood": (0.55, 0.35, 0.18),
+    "sign": (0.13, 0.39, 0.79)
+}
+
+def group(name):
+    return doc.addObject("App::DocumentObjectGroup", name)
+
+def box(parent, name, length, width, height, x, y, z, color):
+    obj = doc.addObject("Part::Box", name)
+    obj.Length = length
+    obj.Width = width
+    obj.Height = height
+    obj.Placement.Base = App.Vector(x, y, z)
+    obj.ViewObject.ShapeColor = colors[color]
+    parent.addObject(obj)
+    return obj
+
+def cylinder(parent, name, radius, height, x, y, z, color):
+    obj = doc.addObject("Part::Cylinder", name)
+    obj.Radius = radius
+    obj.Height = height
+    obj.Placement.Base = App.Vector(x, y, z)
+    obj.ViewObject.ShapeColor = colors[color]
+    parent.addObject(obj)
+    return obj
+
+pavement = group("01_Platform")
+base = box(pavement, "Platform_180x45x3", L, D, BASE_T, 0, 0, 0, "concrete")
+# Road is along the y=0 curb. Edge strip is just an indicative colour band.
+strip = box(pavement, "Tactile_Edge", L-8, 3, 0.8, 4, 1.5, BASE_T, "yellow")
+
+frame = group("02_Shelter")
+sx, sy = 29.0, 15.0
+# 4 posts and an overhanging canopy
+for i, (px, py) in enumerate(((sx, sy), (sx+SHELTER_L, sy),
+                             (sx, sy+SHELTER_D), (sx+SHELTER_L, sy+SHELTER_D)), 1):
+    cylinder(frame, "Shelter_Post_%d" % i, POST_R, CANOPY_Z-BASE_T,
+             px, py, BASE_T, "steel")
+roof = box(frame, "Removable_Canopy", SHELTER_L+10, SHELTER_D+8, 2.0,
+           sx-5, sy-4, CANOPY_Z, "roof")
+# Freestanding panel placeholders; replace with printable frames / transparent inserts.
+back = box(frame, "Glass_Back_Concept", SHELTER_L-7, 1.2, 23,
+           sx+3.5, sy+SHELTER_D-1.2, BASE_T+7, "glass")
+back.ViewObject.Transparency = 68
+side = box(frame, "Glass_End_Concept", 1.2, SHELTER_D-5, 23,
+           sx+SHELTER_L-1.2, sy+2.5, BASE_T+7, "glass")
+side.ViewObject.Transparency = 68
+
+furn = group("03_Furniture")
+bench = box(furn, "Bench_Seat", 34, 7, 2, sx+29, sy+14, BASE_T+10, "wood")
+box(furn, "Bench_Back", 34, 2, 10, sx+29, sy+20, BASE_T+11, "wood")
+for j, bx in enumerate((sx+33, sx+56), 1):
+    box(furn, "Bench_Leg_%d" % j, 2, 2, 10, bx, sy+16, BASE_T, "steel")
+
+sign = group("04_Stop_Sign")
+cylinder(sign, "Sign_Post", 1.2, 38, 150, 33, BASE_T, "steel")
+box(sign, "Sign_Plate", 10, 1.8, 12, 145, 32.1, BASE_T+26, "sign")
+box(sign, "Route_Totem", 9, 6, 25, 163, 31, BASE_T, "sign")
+
+doc.recompute()
+Gui.activeDocument().activeView().viewAxonometric()
+Gui.activeDocument().activeView().fitAll()
+
+# Outputs are saved in the user's Documents folder.
+output = os.path.join(os.path.expanduser("~"), "Documents", "TransitOps-M-CAD")
+os.makedirs(output, exist_ok=True)
+fcstd = os.path.join(output, "TransitOps_M_Station_A.FCStd")
+step = os.path.join(output, "TransitOps_M_Station_A.step")
+doc.saveAs(fcstd)
+
+# STEP is intended for engineering review. Some STEP importers may show many separate solids.
+parts = [obj for obj in doc.Objects if obj.TypeId.startswith("Part::") and hasattr(obj, "Shape")]
+Part.export(parts, step)
+App.Console.PrintMessage("TransitOps-M Station A CAD saved: " + fcstd + "\\n")
+App.Console.PrintMessage("STEP assembly saved: " + step + "\\n")
