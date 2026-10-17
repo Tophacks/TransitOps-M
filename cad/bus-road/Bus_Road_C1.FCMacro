@@ -1,0 +1,55 @@
+# TransitOps-M | Vehicle envelope and modular road concept | FreeCAD 1.x
+# Units: millimetres. Concept geometry; NOT validated driveable guidance.
+import FreeCAD as App
+import Part
+import math, os
+
+NAME = "TransitOps_M_Bus_Road_C1"
+old=App.getDocument(NAME)
+if old: App.closeDocument(NAME)
+doc=App.newDocument(NAME)
+def group(name): return doc.addObject("App::DocumentObjectGroup",name)
+def box(g,n,l,w,h,x,y,z,color):
+    o=doc.addObject("Part::Box",n);o.Length=l;o.Width=w;o.Height=h
+    o.Placement.Base=App.Vector(x,y,z);o.ViewObject.ShapeColor=color;g.addObject(o);return o
+def cylinder(g,n,r,h,x,y,z,color):
+    o=doc.addObject("Part::Cylinder",n);o.Radius=r;o.Height=h
+    o.Placement.Base=App.Vector(x,y,z);o.ViewObject.ShapeColor=color;g.addObject(o);return o
+
+road=group("01_TestRoad")
+box(road,"Road_Straight_300x65",300,65,3,0,0,0,(0.32,0.34,0.37))
+# Solid raised path is only a VISUAL guide-wire reference, not a machineable groove.
+box(road,"Visual_GuideWire_Path",300,0.8,0.15,0,32.1,3,(0.89,0.71,0.16))
+for i in range(5):
+    box(road,"LaneMark_%d"%i,24,1,0.1,13+i*55,51,3,(0.92,0.92,0.86))
+
+bus=group("02_Bus_Clearance_Envelope")
+# Place next to road rather than colliding with it.
+bx,by,bz=335,0,0
+body=box(bus,"Bus_Outer_Envelope_138x30x38",138,30,38,bx,by,bz,(0.75,0.82,0.86))
+body.ViewObject.Transparency=65
+box(bus,"Passenger_Window_Band",100,0.7,12,bx+18,by-0.7,bz+22,(0.16,0.29,0.39))
+box(bus,"Front_Display_Placeholder",19,0.8,5,bx+116,by-0.9,bz+31,(0.10,0.17,0.26))
+for i,x in enumerate((bx+30,bx+108),1):
+    for j,y in enumerate((by-0.7,by+28.7),1):
+        # Wheels represented by cylinders rotated into the transverse direction.
+        o=cylinder(bus,"Wheel_%d_%d"%(i,j),7,1.7,x,y,7,(0.10,0.11,0.12))
+        o.Placement.Rotation=App.Rotation(App.Vector(0,0,1),App.Vector(0,1,0))
+
+geometry=group("03_Curve_Clearance_Study")
+# Curve is drawn as ANNOTATION in XY using a non-solid shape, not a printable road segment.
+def curve(n,r,z,color):
+    edges=[]
+    points=[App.Vector(760+r*math.cos(math.radians(k)),215+r*math.sin(math.radians(k)),z) for k in range(181)]
+    shape=Part.makePolygon(points)
+    o=doc.addObject("PartDesign::Feature",n);o.Shape=shape;o.ViewObject.LineColor=color;geometry.addObject(o)
+curve("Guide_Centerline_R150",150,0,(0.93,0.65,0.08))
+curve("Inner_Clearance_Boundary_R115",115,0,(0.7,0.75,0.79))
+curve("Outer_Clearance_Boundary_R185",185,0,(0.7,0.75,0.79))
+doc.recompute()
+Gui.activeDocument().activeView().viewTop()
+Gui.activeDocument().activeView().fitAll()
+out=os.path.join(os.path.expanduser("~"),"Documents","TransitOps-M-CAD")
+os.makedirs(out,exist_ok=True)
+doc.saveAs(os.path.join(out,"TransitOps_M_Bus_Road_C1.FCStd"))
+App.Console.PrintMessage("Saved bus and road FreeCAD study to: "+out+"\\n")
