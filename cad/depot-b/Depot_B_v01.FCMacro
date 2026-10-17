@@ -47,13 +47,13 @@ for i,(x,y) in enumerate(((24,26),(140,26),(24,76),(140,76)),1):
 # Staging area is NOT an automated branch; floor parking for future engineering.
 staging=group("04_Staging_Parking")
 block(staging,"Parking_Apron",235,120,.6,25,141,3,"drive")
-for i,y in enumerate((150,185,220),1):
-    block(staging,"Staging_Slot_%d_Outline_Left"%i,1.4,28,.4,45,y,3.6,"mark")
+for i,y in enumerate((146,185,224),1):
+    block(staging,"Staging_Slot_%d_Outline_Left"%i,1.4,34,.4,45,y,3.6,"mark")
     block(staging,"Staging_Slot_%d_Outline_Right"%i,1.4,28,.4,214,y,3.6,"mark")
-    block(staging,"Staging_Slot_%d_Back_Stop_VISUAL"%i,170,1.4,.4,45,y+28,3.6,"mark")
+    block(staging,"Staging_Slot_%d_Back_Stop_VISUAL"%i,170,1.4,.4,45,y+34,3.6,"mark")
 # Clearance dummies: 138x30 mm buses, avoid claiming these are fitted chassis.
 clearance=group("05_Vehicle_Clearance_Dummies")
-for i,(x,y) in enumerate(((66,36),(66,86),(59,149),(59,184),(59,219)),1):
+for i,(x,y) in enumerate(((66,36),(66,86),(59,148),(59,187),(59,226)),1):
     o=block(clearance,"Bus_Envelope_%d_138x30x38"%i,138,30,38,x,y,4,"glass")
     o.ViewObject.Transparency=82
 doc.recompute()
