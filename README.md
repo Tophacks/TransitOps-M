@@ -26,3 +26,16 @@ python -m transitops_m.api
 ```
 
 Visit http://127.0.0.1:8765/ and confirm the banner reads **Connected to Python simulation API**. The GitHub code viewer itself does not execute the dashboard; download or clone the repository to run the app.
+
+## v0.2 operations controls (simulation)
+
+The browser dashboard now has **Start**, **Pause**, **Reset simulation**, and **1× / 2× / 4× speed** controls. When a bus reaches Station A or B, the dispatcher simulates three ticks of boarding dwell and emits arrival/departure events. The SVG shows a **conceptual depot branch**; it is not a drivable geometric route yet. Reserve depot, confirm mock docking and release are discrete simulation commands, not physical routing or sensor validation.
+
+Run:
+
+```bash
+python -m unittest discover -s tests -v
+python -m transitops_m.api
+```
+
+Then visit http://127.0.0.1:8765/ . Stop the Python process before pulling updates, and force-refresh the browser to avoid cached JavaScript. Live mode uses the localhost API; standalone HTML uses an in-browser fallback with independent state.
