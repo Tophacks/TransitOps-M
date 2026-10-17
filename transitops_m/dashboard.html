@@ -3,9 +3,11 @@
 <style>body{font:16px system-ui;background:#0d1726;color:#edf4fa;max-width:1000px;margin:32px auto;padding:0 18px}.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}@media(max-width:700px){.grid{grid-template-columns:1fr}}section{border:1px solid #4a5b71;background:#17273c;border-radius:12px;padding:20px}button{cursor:pointer;background:#178b98;color:white;border:0;padding:10px;border-radius:5px;margin:3px}.danger{background:#b83b4d}pre{white-space:pre-wrap;max-height:300px;overflow:auto}small{color:#b9c8d7}#error{color:#ff9e9e}.pill{display:inline-block;border:1px solid #6b819b;border-radius:20px;padding:7px;margin:4px}</style></head>
 <body><h1>TransitOps-M</h1><p>HO-scale miniature city • <strong>Simulation only</strong> — no physical hardware attached.</p><p id="connection" role="status" style="padding:10px;border:1px solid #61778f;border-radius:6px">Connecting…</p>
 <div class="grid"><section><h2>Network</h2><svg viewBox="0 0 560 320" width="100%" role="img" aria-label="Route diagram with two stations and depot"><rect x="40" y="42" width="480" height="230" rx="90" stroke="#53677c" stroke-width="30" fill="none"/><rect x="40" y="42" width="480" height="230" rx="90" stroke="#efcb72" stroke-dasharray="8 9" stroke-width="2" fill="none"/><rect x="95" y="5" width="140" height="35" rx="5" fill="#8baec5"/><text x="109" y="28" fill="#112132">Station A</text><rect x="350" y="277" width="138" height="34" rx="5" fill="#8baec5"/><text x="361" y="298" fill="#112132">Station B</text><rect x="181" y="109" width="199" height="105" rx="8" fill="#2d4765"/><text x="201" y="140" fill="white">Depot 1</text><text x="201" y="161" fill="#d5deea">Parking P1 / P2</text><rect id="bus" x="0" y="0" width="30" height="17" rx="5" fill="#2ac1ca" stroke="white"/></svg><div id="summary"></div></section>
-<section><h2>Commands</h2><button onclick="command('tick',{steps:1})">Tick +1</button><button onclick="command('tick',{steps:20})">Tick +20</button><button onclick="command('return')">Reserve depot</button><button onclick="command('dock')">Confirm mock dock</button><button onclick="command('dispatch')">Release</button><button class="danger" onclick="command('stop')">Emergency stop</button><button onclick="command('clear')">Clear interlock</button><button onclick="command('reset')">Reset fault</button><p id="error"></p><h3>Events</h3><pre id="events"></pre></section></div>
+<section><h2>Commands</h2><button data-action="tick" data-steps="1">Tick +1</button><button data-action="tick" data-steps="20">Tick +20</button><button data-action="return">Reserve depot</button><button data-action="dock">Confirm mock dock</button><button data-action="dispatch">Release</button><button class="danger" data-action="stop">Emergency stop</button><button data-action="clear">Clear interlock</button><button data-action="reset">Reset fault</button><p id="error"></p><h3>Events</h3><pre id="events"></pre></section></div>
 <script>
 const el=id=>document.getElementById(id);
+const notice=(msg)=>{el('error').textContent=msg;};
+document.addEventListener('click',(e)=>{const btn=e.target.closest('button[data-action]');if(!btn)return;e.preventDefault();notice('Sending '+btn.dataset.action+'…');runCommand(btn.dataset.action,btn.dataset.steps?{steps:Number(btn.dataset.steps)}:{});});
 const STATIONS={'Station A':0.20,'Station B':0.70};
 let mode='offline', data=null, busy=false;
 function initial(){
@@ -54,7 +56,7 @@ default:throw Error('Unknown command');
 }
 return data;
 }
-async function command(action,extra={}){
+async function runCommand(action,extra={}){
 if(busy)return;busy=true;
 try{
 let result;
@@ -65,8 +67,8 @@ const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'appli
 const v=await r.json();if(!r.ok)throw Error(v.error||'API request failed');result=v;
 }finally{clearTimeout(timeout);}
 }else{result=simulatedCommand(action,extra);}
-el('error').textContent='';render(result);
-}catch(e){el('error').textContent=String(e.message||e);}
+render(result);notice('Command completed: '+action+' (tick '+result.tick+')');
+}catch(e){notice('Command failed: '+String(e.message||e));}
 finally{busy=false;}
 }
 function render(d){
