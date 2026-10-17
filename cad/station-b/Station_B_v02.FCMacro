@@ -30,7 +30,7 @@ for k,x in enumerate((X+20,X+80),1):
  box(f,"Bench_Seat_%d"%k,38,8,2,x,Y+13,13,"wood")
  box(f,"Bench_Back_%d"%k,38,2,12,x,Y+20,13,"wood")
  for j,xx in enumerate((x+5,x+30),1): box(f,"Bench_Leg_%d_%d"%(k,j),2,2,10,xx,Y+15,3,"steel")
-box(f,"Route_Map_Display",27,1.8,19,X+53,Y+26,13,"blue")
+box(\n f, "Route_Map_Display",\n 27, 1.8, 19,\n X + 53, Y + 26, 13,\n "blue"\n)
 sign=group("Signage_Ticketing")
 pole(sign,"Stop_Pole",1.3,43,194,37,3,"steel")
 box(sign,"Stop_Sign",11,2,13,188.5,36,33,"blue")
