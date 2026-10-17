@@ -1,0 +1,66 @@
+# TransitOps-M Depot B v0.1 — active service bays + staging apron
+# FreeCAD 1.x macro. All dimensions in model millimetres.
+import FreeCAD as App
+import os
+
+N="TransitOps_M_Depot_B"
+if N in App.listDocuments():
+    App.closeDocument(N)
+doc=App.newDocument(N)
+C={"slab":(.64,.69,.73),"drive":(.29,.33,.38),"steel":(.28,.36,.44),
+   "roof":(.18,.31,.41),"mark":(.94,.76,.19),"cyan":(.16,.72,.78),
+   "park":(.39,.47,.55),"glass":(.42,.72,.85),"equipment":(.20,.44,.70)}
+def group(name):return doc.addObject("App::DocumentObjectGroup",name)
+def block(g,n,l,w,h,x,y,z,c):
+    o=doc.addObject("Part::Box",n)
+    o.Length=l;o.Width=w;o.Height=h
+    o.Placement.Base=App.Vector(x,y,z);o.ViewObject.ShapeColor=C[c]
+    g.addObject(o)
+    return o
+def post(g,n,r,h,x,y,z,c):
+    o=doc.addObject("Part::Cylinder",n)
+    o.Radius=r;o.Height=h
+    o.Placement.Base=App.Vector(x,y,z);o.ViewObject.ShapeColor=C[c]
+    g.addObject(o)
+    return o
+
+# Study geometry: X direction forward through bays, entering at x=0 and exiting x=280.
+# Y direction separates active bays and the parking apron.
+base=group("01_Base_and_Lanes")
+block(base,"Depot_Slab_280x280",280,280,3,0,0,0,"slab")
+block(base,"Active_Bay_1_Lane",280,44,.6,0,29,3,"drive")
+block(base,"Active_Bay_2_Lane",280,44,.6,0,79,3,"drive")
+for i,y in enumerate((51,101),1):
+    block(base,"Bay_%d_Guide_Path_VISUAL"%i,280,.8,.2,0,y,3.65,"cyan")
+# Open-ended bays allow forward-only travel, unlike dead-end garages.
+service=group("02_Active_Service_Bays")
+for i,y in enumerate((29,79),1):
+    for j,(x,yy) in enumerate(((30,y),(243,y),(30,y+44),(243,y+44)),1):
+        post(service,"Active_%d_Post_%d"%(i,j),2,45,x,yy,3,"steel")
+    block(service,"Bay_%d_Detector_Placeholder"%i,10,7,8,180,y+4,3.6,"equipment")
+    block(service,"Bay_%d_Service_Island"%i,26,5,12,107,y+38,3.6,"equipment")
+# Four separate sawtooth-style roof panels, intentionally offset over the two lanes.
+roof=group("03_Removable_Roof_Concept")
+for i,(x,y) in enumerate(((24,26),(140,26),(24,76),(140,76)),1):
+    obj=block(roof,"Roof_Panel_%d"%i,115,48,2.5,x,y,52+((i-1)%2)*8,"roof")
+    obj.ViewObject.Transparency=38
+# Staging area is NOT an automated branch; floor parking for future engineering.
+staging=group("04_Staging_Parking")
+block(staging,"Parking_Apron",235,120,.6,25,141,3,"drive")
+for i,y in enumerate((150,185,220),1):
+    block(staging,"Staging_Slot_%d_Outline_Left"%i,1.4,28,.4,45,y,3.6,"mark")
+    block(staging,"Staging_Slot_%d_Outline_Right"%i,1.4,28,.4,214,y,3.6,"mark")
+    block(staging,"Staging_Slot_%d_Back_Stop_VISUAL"%i,170,1.4,.4,45,y+28,3.6,"mark")
+# Clearance dummies: 138x30 mm buses, avoid claiming these are fitted chassis.
+clearance=group("05_Vehicle_Clearance_Dummies")
+for i,(x,y) in enumerate(((66,36),(66,86),(59,149),(59,184),(59,219)),1):
+    o=block(clearance,"Bus_Envelope_%d_138x30x38"%i,138,30,38,x,y,4,"glass")
+    o.ViewObject.Transparency=82
+doc.recompute()
+Gui.activeDocument().activeView().viewAxonometric()
+Gui.activeDocument().activeView().fitAll()
+out=os.path.join(os.path.expanduser("~"),"Documents","TransitOps-M-CAD")
+os.makedirs(out,exist_ok=True)
+target=os.path.join(out,"TransitOps_M_Depot_B.FCStd")
+doc.saveAs(target)
+App.Console.PrintMessage("Depot B saved: "+target+"\n")
