@@ -21,6 +21,7 @@ class Bus:
     battery: float = 100.0
     bay: Optional[str] = None
     trips: int = 0
+    dwell_remaining: int = 0
 
 @dataclass
 class Bay:
@@ -42,6 +43,7 @@ class Dispatcher:
         }
         self.interlock_fault = False
         self.mode = "NORMAL"
+        self.dwell_ticks = 3
 
     def _event(self, kind, bus=None, **fields):
         record = {"tick": self.tick_no, "type": kind, "bus": bus, **fields}
@@ -65,6 +67,7 @@ class Dispatcher:
         if bay.occupied_by or bay.reserved_for or self.interlock_fault: raise ValueError("Automated bay unavailable")
         bay.reserved_for = identifier
         bus.state = State.RETURNING
+        bus.dwell_remaining = 0
         bus.station = None
         self._event("DEPOT_RESERVED", identifier, bay=bay.id)
 
@@ -87,6 +90,7 @@ class Dispatcher:
             if bay.occupied_by != identifier: raise ValueError("Bay occupancy mismatch")
             bay.occupied_by = None
         bus.bay, bus.state, bus.station = None, State.IN_SERVICE, None
+        bus.dwell_remaining = 0
         self._event("VEHICLE_RELEASED", identifier)
 
     def emergency_stop(self, reason="operator"):
@@ -113,12 +117,18 @@ class Dispatcher:
             self.tick_no += 1
             for bus in self.buses.values():
                 if bus.state != State.IN_SERVICE or self.interlock_fault: continue
+                if bus.dwell_remaining:
+                    bus.dwell_remaining -= 1
+                    if bus.dwell_remaining == 0:
+                        self._event("STATION_DEPARTURE", bus.id, station=bus.station)
+                    continue
                 previous = bus.distance
                 bus.distance = (bus.distance + 0.025) % 1.0
                 bus.battery = max(0.0, round(bus.battery - 0.05, 3))
                 for name, position in self.STATIONS.items():
                     if (previous <= position < bus.distance) or (bus.distance < previous and (position >= previous or position < bus.distance)):
                         bus.station = name
+                        bus.dwell_remaining = self.dwell_ticks
                         self._event("STATION_ARRIVAL", bus.id, station=name)
                 if bus.distance < previous: bus.trips += 1
                 if bus.battery == 0:
@@ -126,10 +136,16 @@ class Dispatcher:
                     self._event("BATTERY_EMPTY_SIM", bus.id)
         return self.snapshot()
 
+    def reset(self):
+        self.__init__()
+        self._event("SIMULATION_RESET")
+        return self.snapshot()
+
     def snapshot(self):
         return {
             "tick": self.tick_no, "mode": self.mode, "interlock_fault": self.interlock_fault,
             "stations": self.STATIONS,
+            "layout": {"scale": "1:87", "route": "closed-loop", "depot_branch": "conceptual"},
             "buses": {k: {**asdict(v), "state": v.state.value} for k, v in self.buses.items()},
             "bays": {k: asdict(v) for k, v in self.bays.items()},
             "events": self.events[-20:],
