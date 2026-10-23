@@ -2,6 +2,7 @@
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Optional
+import re
 
 class State(str, Enum):
     IN_SERVICE = "IN_SERVICE"
@@ -52,10 +53,17 @@ class Dispatcher:
         return record
 
     def _bus(self, identifier):
+        self._validate_id(identifier)
         if identifier not in self.buses: raise ValueError("Unknown bus")
         return self.buses[identifier]
 
+    @staticmethod
+    def _validate_id(identifier):
+        if not isinstance(identifier, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", identifier):
+            raise ValueError("Bus ID must be 1–32 letters, digits, underscores or hyphens")
+
     def add_bus(self, identifier):
+        self._validate_id(identifier)
         if not identifier or identifier in self.buses: raise ValueError("Bus ID must be unique and nonempty")
         self.buses[identifier] = Bus(identifier, state=State.PARKED)
         self._event("BUS_REGISTERED", identifier)
@@ -112,7 +120,7 @@ class Dispatcher:
         self._event("BUS_RESET_TO_HOLD", identifier)
 
     def tick(self, steps=1):
-        if not isinstance(steps, int) or not 1 <= steps <= 100: raise ValueError("steps must be integer from 1 to 100")
+        if type(steps) is not int or not 1 <= steps <= 100: raise ValueError("steps must be integer from 1 to 100")
         for _ in range(steps):
             self.tick_no += 1
             for bus in self.buses.values():

@@ -1,11 +1,14 @@
 """Localhost-only development API for simulated vehicles. Never directly control hardware."""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Lock
 from json import dumps, loads
 from urllib.parse import urlparse
 from .core import Dispatcher
 
 engine = Dispatcher()
+# Keep each command and its returned snapshot atomic across HTTP worker threads.
+engine_lock = Lock()
 
 class Handler(BaseHTTPRequestHandler):
     def _reply(self, status, obj):
@@ -25,7 +28,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(page)))
             self.end_headers()
             self.wfile.write(page)
-        elif path == "/api/state": self._reply(200, engine.snapshot())
+        elif path == "/api/state":
+            with engine_lock:
+                snapshot = engine.snapshot()
+            self._reply(200, snapshot)
         elif path == "/health": self._reply(200, {"ok": True, "simulated": True})
         else: self._reply(404, {"error": "Not found"})
 
@@ -35,18 +41,21 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             if not 1 <= length <= 4096: raise ValueError("Invalid command length")
             data = loads(self.rfile.read(length))
+            if not isinstance(data, dict): raise ValueError("Command must be a JSON object")
             command, identifier = data.get("command"), data.get("bus", "BUS-01")
-            if command == "reset_sim": engine.reset()
-            elif command == "tick": engine.tick(data.get("steps", 1))
-            elif command == "return": engine.request_depot(identifier)
-            elif command == "dock": engine.confirm_docked(identifier)
-            elif command == "dispatch": engine.dispatch(identifier)
-            elif command == "stop": engine.emergency_stop()
-            elif command == "clear": engine.clear_interlock()
-            elif command == "reset": engine.reset_bus(identifier)
-            elif command == "add": engine.add_bus(identifier)
-            else: raise ValueError("Unknown command")
-            self._reply(200, engine.snapshot())
+            with engine_lock:
+                if command == "reset_sim": engine.reset()
+                elif command == "tick": engine.tick(data.get("steps", 1))
+                elif command == "return": engine.request_depot(identifier)
+                elif command == "dock": engine.confirm_docked(identifier)
+                elif command == "dispatch": engine.dispatch(identifier)
+                elif command == "stop": engine.emergency_stop()
+                elif command == "clear": engine.clear_interlock()
+                elif command == "reset": engine.reset_bus(identifier)
+                elif command == "add": engine.add_bus(identifier)
+                else: raise ValueError("Unknown command")
+                snapshot = engine.snapshot()
+            self._reply(200, snapshot)
         except (ValueError, KeyError, TypeError) as e: self._reply(400, {"error": str(e)})
 
 def main():

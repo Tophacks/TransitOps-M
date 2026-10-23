@@ -4,14 +4,13 @@ Hardware-independent Python module for the TransitOps monorepo. Simulates one 1:
 
 ## Run (Python 3.10+, zero third-party dependencies)
 ```bash
-cd miniature
 python -m unittest discover -s tests -v
 python -m transitops_m.api
 ```
 Open http://127.0.0.1:8765/
 
 API: GET /health, GET /api/state, POST /api/command.
-Commands: tick (steps 1..100), return, dock, dispatch, stop, clear, reset, add.
+Commands: reset_sim (full simulation reset), tick (integer steps 1..100; booleans rejected), return, dock, dispatch, stop, clear, reset, add.
 
 **Safety:** SIMULATION ONLY. Docking is manually confirmed in software. No motor hardware, real emergency-stop circuitry, battery charger, or GPIO interface is implemented. This API must not be exposed to a public network or connected directly to actuators.
 
@@ -39,3 +38,13 @@ python -m transitops_m.api
 ```
 
 Then visit http://127.0.0.1:8765/ . Stop the Python process before pulling updates, and force-refresh the browser to avoid cached JavaScript. Live mode uses the localhost API; standalone HTML uses an in-browser fallback with independent state.
+
+## Current build readiness
+
+- [Purchasing plan and evidence](docs/PURCHASING_PLAN.md): one test vehicle first; no approved hardware cart yet.
+- [Development log](docs/DEVELOPMENT_LOG.md): dated changes and validation.
+- [Public website](https://transitops-m.vercel.app): information site, not the Python API.
+
+The simulator has **one reservable bay and two static spaces**. The larger **two active bays + three staging slots** depot is a separate CAD concept, not the implemented simulator layout.
+
+The threaded HTTP API serializes commands and state snapshots. Commands must be JSON objects; bus IDs must contain 1–32 ASCII letters, digits, underscores or hyphens. This validation does not make the localhost development server suitable for public exposure or hardware operation.

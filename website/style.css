@@ -6,3 +6,6 @@
 
 /* Mission statement */
 .mission-section{padding:76px 0 82px;background:#152a32;border-top:1px solid #31505a;border-bottom:1px solid #31505a;scroll-margin-top:35px}.mission-layout{display:grid;grid-template-columns:.95fr 1fr;gap:65px;align-items:center}.mission-layout h2{margin-bottom:0}.mission-statement{font-size:clamp(19px,2.15vw,27px);line-height:1.52;letter-spacing:-.4px;font-weight:650;margin:0 0 18px;color:#e8f5f2}.mission-support{font-size:14px;line-height:1.85;color:#adc4c7}.mission-link{display:inline-block;color:#75e1ce;font-size:13px;font-weight:750;margin-top:10px}@media(max-width:700px){.mission-section{padding:56px 0}.mission-layout{grid-template-columns:1fr;gap:24px}}
+
+/* Purchasing status uses the shared site cards and responsive timeline. */
+.procurement h1{font-size:clamp(42px,5.4vw,74px);line-height:1.08;letter-spacing:-2px;margin:24px 0}.procurement .hero-lead{max-width:760px}
