@@ -41,7 +41,7 @@ Then visit http://127.0.0.1:8765/ . Stop the Python process before pulling updat
 
 ## Current build readiness
 
-- [Purchasing plan and evidence](docs/PURCHASING_PLAN.md): one test vehicle first; no approved hardware cart yet.
+- [Hardware validation plan](docs/PURCHASING_PLAN.md): one test vehicle first; physical compatibility remains unverified.
 - [Development log](docs/DEVELOPMENT_LOG.md): dated changes and validation.
 - [Public website](https://transitops-m.vercel.app): information site, not the Python API.
 
