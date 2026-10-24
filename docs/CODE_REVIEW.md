@@ -1,15 +1,15 @@
 # Simulator/controller code review — 2026-10-23
 
-Reviewed `transitops_m/core.py`, `api.py`, `dashboard.html` and existing tests at commit `1bd29a9`. This is a code review and implementation proposal, not a claim of hardware readiness. The following findings remain open.
+Reviewed `transitops_m/core.py`, `api.py`, `dashboard.html` and existing tests at commit `1bd29a9`. This is a code review and implementation proposal, not a claim of hardware readiness. Findings are tracked below. Items marked resolved have regression coverage in the current default branch.
 
 ## Reproduced behavior and design gaps
 
 | Priority | Finding | Evidence / reproduction | Proposed change |
 |---|---|---|---|
-| 1 | Browser demo advances dwell while faulted | Tick 9, emergency stop, tick 3 in the browser model: dwell falls from 3 to 0 and emits STATION_DEPARTURE while state remains FAULT. Python checks state/interlock before dwell processing. | Put the same state/interlock guard before dwell in both implementations; add shared scenario fixtures for event and state parity. |
+| Resolved 2026-10-24 | Faulted dwell advanced in both implementations | Emergency stop during a dwell could still count down and emit `STATION_DEPARTURE`. | Python and browser now apply the state/interlock guard before dwell; a regression freezes dwell while faulted. Shared cross-runtime fixtures remain open. |
 | 1 | No explicit resume from HOLDING | Python stop → clear → reset → tick(10) leaves BUS-01 HOLDING; dispatch rejects it. Return/dock/dispatch is a workaround, but invokes an unrelated mock depot flow. | Add explicit operator resume, guarded by cleared interlock, battery and route availability. Keep reset itself non-moving. |
 | 1 | No route occupancy or separation | Add BUS-02, dispatch it, tick once: both buses have distance 0.025. Depot reservation prevents double booking only in the bay. | Introduce route segments and occupancy/reservations before automatic multi-bus dispatch. Define stopped-leader and entry-conflict scenarios. |
-| 2 | Station arrival is detected after crossing | Starting distance 0.175 produces approximately 0.20 without arrival; next tick advances to approximately 0.225 and triggers dwell. Predicate uses previous <= stop < new position. Browser rounds distance; Python does not. | Adopt a documented discrete position unit or consistent tolerance, inclusive arrival boundary and a clamp to the stop. Test exact arrivals and loop wrap. |
+| Resolved 2026-10-24 | Station arrival was detected after crossing | An exact move to 0.20 previously delayed Station A arrival until the next tick. | Both implementations now use the same inclusive forward-crossing rule, clamp to the stop, and test exact arrivals plus loop wrap. Physical units remain undefined. |
 | 2 | Rendered geometry is disconnected from simulation | Renderer places BUS-01 on an ellipse, while SVG roadway is a rounded rectangle. It draws only BUS-01 despite API support for additional buses. Depot docking changes state but does not move the marker onto a depot route. | Use one route geometry definition for movement and rendering, and draw every bus. Keep mock docking visibly separate until depot geometry exists. |
 | 2 | Time and state are browser-driven and volatile | Start uses setInterval to send tick commands; no server clock or durable run log exists. Multiple clients can advance the same engine, and restart discards state. | Define one simulation clock owner, explicit run/paused state and deterministic scenario runner; export complete run events separately from bounded UI history. |
 
