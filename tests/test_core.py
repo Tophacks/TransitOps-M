@@ -8,7 +8,7 @@ class TestFleet(unittest.TestCase):
 
     def test_station_dwell(self):
         d = Dispatcher()
-        d.tick(9)
+        d.tick(8)
         self.assertEqual(d.buses["BUS-01"].station, "Station A")
         self.assertEqual(d.buses["BUS-01"].dwell_remaining, 3)
         distance = d.buses["BUS-01"].distance
@@ -53,5 +53,21 @@ class TestFleet(unittest.TestCase):
 
     def test_invalid_tick(self):
         with self.assertRaises(ValueError): Dispatcher().tick(10000)
+
+
+    def test_faulted_bus_does_not_complete_dwell(self):
+        d = Dispatcher(); d.tick(8)
+        d.emergency_stop(); d.tick(5)
+        bus = d.buses["BUS-01"]
+        self.assertEqual(bus.state, State.FAULT)
+        self.assertEqual(bus.dwell_remaining, 3)
+        self.assertNotIn("STATION_DEPARTURE", [e["type"] for e in d.events])
+
+    def test_wrapped_step_detects_station_near_zero(self):
+        d = Dispatcher(); d.STATIONS = {"Loop Start": 0.01}
+        d.buses["BUS-01"].distance = 0.99
+        d.tick()
+        self.assertEqual(d.buses["BUS-01"].distance, 0.01)
+        self.assertEqual(d.buses["BUS-01"].dwell_remaining, 3)
 
 if __name__ == "__main__": unittest.main()
