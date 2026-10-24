@@ -26,12 +26,12 @@ case 'tick': {
 const n=extra.steps??1;
 if(!Number.isInteger(n)||n<1||n>100)throw Error('Invalid tick count');
 for(let i=0;i<n;i++){data.tick++;
-if(b.dwell_remaining>0){b.dwell_remaining--;if(b.dwell_remaining===0)event('STATION_DEPARTURE',{station:b.station});continue;}
 if(b.state!=='IN_SERVICE'||data.interlock_fault)continue;
+if(b.dwell_remaining>0){b.dwell_remaining--;if(b.dwell_remaining===0)event('STATION_DEPARTURE',{station:b.station});continue;}
 const prev=b.distance;
 b.distance=+( (b.distance+.025)%1).toFixed(5);
 b.battery=Math.max(0,+(b.battery-.05).toFixed(3));
-for(const [name,pos] of Object.entries(STATIONS)){if((prev<=pos&&pos<b.distance)||(b.distance<prev&&(pos>=prev||pos<b.distance))){b.station=name;b.dwell_remaining=3;event('STATION_ARRIVAL',{station:name});}}
+for(const [name,pos] of Object.entries(STATIONS)){const crossed=b.distance>=prev?(prev<pos&&pos<=b.distance):(pos>prev||pos<=b.distance);if(crossed){b.distance=pos;b.station=name;b.dwell_remaining=3;event('STATION_ARRIVAL',{station:name});break;}}
 if(b.distance<prev)b.trips++;
 if(b.battery===0){b.state='HOLDING';event('BATTERY_EMPTY_SIM');}
 }break;}
