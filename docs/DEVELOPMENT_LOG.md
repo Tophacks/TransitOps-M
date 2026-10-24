@@ -1,5 +1,29 @@
 # Development log
 
+## 2026-10-24 — State-machine and route-boundary correction
+
+### Implemented
+- Prevent dwell countdown and station-departure events unless a bus is actively `IN_SERVICE` and the interlock is clear. An emergency-stopped bus now freezes its dwell state.
+- Detect arrival on the exact station boundary, clamp the normalized route position to the stop and use identical crossing semantics in Python and the browser demo.
+- Add regressions for emergency stop during dwell, exact-boundary arrival and a station reached across the loop wrap.
+- Update the public project page to describe the corrected controller behavior without implying hardware readiness.
+
+### Research and decision
+No consequential primary-source change this week justified changing the planned simulation stack or purchasing hardware. Eclipse SUMO remains the next intended microscopic backend because its official documentation supports public transport, pedestrians and remote-control APIs: https://eclipse.dev/sumo/ . The physical design remains gated on one guided vehicle and measured geometry.
+
+### Validation
+- Full repository suite: 17 tests passed with `python -m unittest discover -s tests -v`.
+- Browser dashboard JavaScript parsed successfully after the parity changes.
+- No physical vehicle, guide path, sensor, actuator, charging system or public deployment was tested.
+
+### Remaining risks / next milestone
+1. Browser/Python parity is still maintained in two implementations; shared scenario fixtures remain necessary.
+2. Route occupancy and safe separation are absent, so automatic multi-bus dispatch is not ready.
+3. Depot access is conceptual and docking remains a manually injected simulation confirmation.
+
+Next milestone: add a deterministic scenario runner and metrics for trips, dwell, blocked commands and recovery time before multi-bus routing.
+
+
 ## 2026-10-23 — First maintenance and procurement review
 
 ### Implemented
